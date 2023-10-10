@@ -51,19 +51,19 @@ def get_start_end_dates(run_date, period):
     else:
         raise ValueError("Unknown value in parameter --PERIOD.")
 
-    cfg = SimpleNamespace(
+    return SimpleNamespace(
         start_date=start_date.strftime('%Y-%m-%d'),
-        end_date=end_date.strftime('%Y-%m-%d')
+        end_date=end_date.strftime('%Y-%m-%d'),
     )
-
-    return cfg
 
 # Create Data frame
 def create_df(spark, s3_path):
-    # Read the csv formatted S3 files
-    df = spark.read.format("csv").option("inferSchema", "true").option("header", "true").load(s3_path)
-
-    return df
+    return (
+        spark.read.format("csv")
+        .option("inferSchema", "true")
+        .option("header", "true")
+        .load(s3_path)
+    )
     
 
 # Read parameters
@@ -96,7 +96,7 @@ spark.conf.set("spark.sql.parquet.enableVectorizedReader", "false")
 spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
 
 # Get current datetime
-run_date = datetime.today()
+run_date = datetime.now()
 # Get period start and end date.
 cfg = get_start_end_dates(run_date, period)
 
@@ -130,5 +130,7 @@ logger.info(f"query_aggregate : {query_aggregate}")
 # Execute the SQL to create df
 df_aggregate = spark.sql(query_aggregate)
 
-# Write 
-df_aggregate.coalesce(1).write.mode("overwrite").parquet(s3_output_base_path + "/world-cases-deaths-aggregates/" + "/aggregate=" + period)
+# Write
+df_aggregate.coalesce(1).write.mode("overwrite").parquet(
+    f"{s3_output_base_path}/world-cases-deaths-aggregates//aggregate={period}"
+)
